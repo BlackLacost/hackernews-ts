@@ -1,0 +1,24 @@
+{
+  "name": "hackernews-ts",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon src/index.ts"
+  },
+  "keywords": [],
+  "author": "Ilya Lisin <blacklacost@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^17.0.14",
+    "nodemon": "^2.0.15",
+    "prisma": "^3.9.1",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.5"
+  },
+  "dependencies": {
+    "@prisma/client": "^3.9.1",
+    "apollo-server": "^2.25.3",
+    "graphql": "^15.8.0"
+  }
+}

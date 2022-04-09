@@ -1,7 +1,7 @@
-import { hash, compare } from 'bcrypt'
-import { gql, IResolvers } from 'apollo-server'
-import { sign } from 'jsonwebtoken'
-import { Context } from './index'
+import { hash, compare } from 'bcrypt';
+import { gql, IResolvers } from 'apollo-server';
+import { sign } from 'jsonwebtoken';
+import { Context } from './index';
 
 export const typeDefs = gql`
   type User {
@@ -23,8 +23,14 @@ export const typeDefs = gql`
     author: User!
   }
 
+  type Vote {
+    id: ID!
+    user: User!
+    post: Post!
+  }
+
   type Query {
-    users: [User!]!
+    users: [User!]
     posts: [Post!]!
   }
 
@@ -32,46 +38,55 @@ export const typeDefs = gql`
     signup(username: String!, password: String!, name: String!): AuthPayload!
     login(username: String!, password: String!): AuthPayload!
     postCreate(title: String!, body: String!): Post!
+    vote(postId: Int!): Vote!
   }
-`
+`;
+
 export const resolvers: IResolvers<any, Context> = {
   Query: {
-    users: (_, __, { prisma }) => {
-      return prisma.user.findMany()
+    users: (_, __, { prisma, user }) => {
+      if (!user) {
+        throw new Error('Credential error');
+      }
+      return prisma.user.findMany();
     },
 
     posts: (_, __, { prisma }) => {
-      return prisma.post.findMany()
+      return prisma.post.findMany();
     },
   },
 
   Mutation: {
     signup: async (_, { username, password, name }, { prisma }) => {
-      const hashedPassword = await hash(password, 12)
-      const user = await prisma.user.create({ data: { username, password: hashedPassword, name } })
-      const token = sign({ sub: user.id }, 'super_secret')
+      const hashedPassword = await hash(password, 12);
+      const user = await prisma.user.create({
+        data: { username, password: hashedPassword, name },
+      });
+      const token = sign({ sub: user.id, name: user.name }, 'super_secret');
       return {
         token,
         user,
-      }
+      };
     },
 
     login: async (_, args, { prisma }) => {
-      const user = await prisma.user.findUnique({ where: { username: args.username } })
+      const user = await prisma.user.findUnique({
+        where: { username: args.username },
+      });
       if (!user) {
-        throw new Error('Credential error')
+        throw new Error('Credential error');
       }
 
-      const valid = await compare(args.password, user.password)
+      const valid = await compare(args.password, user.password);
       if (!valid) {
-        throw new Error('Credential error')
+        throw new Error('Credential error');
       }
 
-      const token = sign({ sub: user.id }, 'super_secret')
+      const token = sign({ sub: user.id, name: user.name }, 'super_secret');
       return {
         token,
         user,
-      }
+      };
     },
 
     postCreate: async (_, { title, body }, { prisma, user }) => {
@@ -81,23 +96,25 @@ export const resolvers: IResolvers<any, Context> = {
           body,
           author: { connect: { id: user.id } },
         },
-      })
+      });
 
-      return post
+      return post;
     },
   },
 
   Post: {
     author: async (parent, __, { prisma }) => {
-      const { authorId } = parent
-      const author = await prisma.user.findUnique({ where: { id: authorId } })
-      return author
+      const { authorId } = parent;
+      const author = await prisma.user.findUnique({
+        where: { id: authorId },
+      });
+      return author;
     },
   },
 
   User: {
     posts: async (parent, __, { prisma }) => {
-      return prisma.post.findMany({ where: { authorId: parent.id } })
+      return prisma.post.findMany({ where: { authorId: parent.id } });
     },
   },
-}
+};

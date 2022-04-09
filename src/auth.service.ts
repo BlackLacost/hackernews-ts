@@ -1,4 +1,4 @@
-import { PrismaClient, User } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import { Request } from 'express'
 import jwt from 'jsonwebtoken'
 
@@ -16,13 +16,16 @@ export function getTokenFromReq(req: Request): string | null {
   return null
 }
 
-export async function getUserFromReq(req: Request, prisma: PrismaClient): Promise<User | null> {
+export async function getUserFromReq(req: Request, prisma: PrismaClient) {
   const token = getTokenFromReq(req)
 
   if (token) {
     const payload = jwt.verify(token, 'super_secret')
     if (payload) {
-      const user = await prisma.user.findUnique({ where: { id: Number(payload.sub) } })
+      const user = await prisma.user.findUnique({
+        where: { id: Number(payload.sub) },
+        include: { roles: { include: { role: true } } },
+      })
       if (user) {
         return user
       }
